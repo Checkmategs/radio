@@ -1,6 +1,4 @@
-const STATION = /github\.io$/i.test(location.hostname)
-  ? "http://10.91.0.238:9191"
-  : "";
+const STATION = /github\.io$/i.test(location.hostname) ? "http://127.0.0.1:9191" : "";
 
 const playBtn = document.querySelector("#play");
 const playIcon = document.querySelector("#play-icon");
@@ -11,7 +9,8 @@ const player = document.querySelector("#player");
 let listening = false;
 
 function api(path) {
-  return `${STATION}/${String(path).replace(/^\//, "")}`;
+  const prefix = STATION || new URL(".", window.location.href).href.replace(/\/$/, "");
+  return `${prefix}/${String(path).replace(/^\//, "")}`;
 }
 
 function render(state) {
@@ -41,7 +40,7 @@ playBtn.addEventListener("click", async () => {
     if (listening) stop();
     else await start();
   } catch {
-    hintEl.textContent = "Не удалось включить поток с этой машинки.";
+    hintEl.textContent = "Не удалось включить поток. Запустите npm start на этом компьютере.";
   }
 });
 
@@ -55,17 +54,9 @@ function connectEvents() {
     fetch(api("api/state"))
       .then((res) => res.json())
       .then(render)
-      .catch(() => {
-        if (!STATION) {
-          hintEl.textContent = "Сервер выключен. Запустите npm start на машинке.";
-        }
-      });
+      .catch(() => {});
     setTimeout(connectEvents, 2000);
   });
-}
-
-if (STATION) {
-  hintEl.textContent = "Play включает эфир с машинки в подсети.";
 }
 
 connectEvents();

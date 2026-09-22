@@ -1,21 +1,35 @@
 import express from "express";
-import os from "node:os";
+import multer from "multer";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { Radio } from "./radio.js";
+import { decodeOriginalName, Radio } from "./radio.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TRACKS_DIR = path.join(ROOT, "tracks");
 const PORT = Number(process.env.PORT || 9191);
-const HOST = process.env.HOST || "0.0.0.0";
+const HOST = process.env.HOST || "127.0.0.1";
 
 const radio = new Radio({ tracksDir: TRACKS_DIR });
 const app = express();
 
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, TRACKS_DIR),
+  filename: (_req, file, cb) => {
+    const raw = decodeOriginalName(file.originalname);
+    const safe = path.basename(raw).replace(/[/\\]/g, "-") || "track";
+    cb(null, safe);
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 200 * 1024 * 1024, files: 20 },
+});
+
 app.disable("x-powered-by");
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") {
     res.sendStatus(204);
@@ -23,6 +37,7 @@ app.use((req, res, next) => {
   }
   next();
 });
+app.use(express.json());
 app.use(express.static(path.join(ROOT, "public")));
 
 app.get("/api/state", (_req, res) => {
@@ -56,9 +71,32 @@ app.get("/stream", (req, res) => {
   req.on("close", () => radio.removeListener(res));
 });
 
+app.post("/api/upload", upload.array("files", 20), async (req, res) => {
+  try {
+    const files = req.files || [];
+    if (files.length === 0) {
+      res.status(400).json({ error: "Файлы не пришли" });
+      return;
+    }
+    await radio.syncFolder();
+    res.json({
+      imported: files.map((file) => ({
+        name: decodeOriginalName(file.originalname).replace(/\.[^.]+$/, ""),
+      })),
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message || "Не удалось поставить в эфир" });
+  }
+});
+
+app.post("/api/skip", (_req, res) => {
+  radio.skip();
+  res.json({ ok: true });
+});
+
 const server = app.listen(PORT, HOST, () => {
   console.log(`91RADIO в эфире`);
-  for (const url of lanUrls(PORT)) console.log(`  ${url}`);
+  console.log(`  http://127.0.0.1:${PORT}/`);
   console.log(`  треки: ${TRACKS_DIR}`);
 });
 
@@ -73,16 +111,3 @@ function shutdown() {
 
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
-
-function lanUrls(port) {
-  const urls = [`http://127.0.0.1:${port}/`];
-  const nets = os.networkInterfaces();
-  for (const list of Object.values(nets)) {
-    for (const item of list || []) {
-      if (item.family === "IPv4" && !item.internal) {
-        urls.push(`http://${item.address}:${port}/`);
-      }
-    }
-  }
-  return urls;
-}

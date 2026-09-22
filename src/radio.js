@@ -70,6 +70,18 @@ export function cleanName(name) {
   return base.replace(/\.[^.]+$/, "") || base;
 }
 
+export function decodeOriginalName(name) {
+  if (!name) return "без названия";
+  if (/[\u0400-\u04FF]/.test(name)) return name;
+  try {
+    const repaired = Buffer.from(name, "latin1").toString("utf8");
+    if (/[\u0400-\u04FF]/.test(repaired)) return repaired;
+    return name;
+  } catch {
+    return name;
+  }
+}
+
 export class Radio {
   constructor({ tracksDir }) {
     this.tracksDir = tracksDir;
@@ -187,8 +199,19 @@ export class Radio {
       frequency: "10.91",
       status: this.current ? "playing" : this.mode === "silence" ? "silence" : "idle",
       now,
+      library: this.library.map((track) => ({
+        id: track.id,
+        name: track.name,
+        duration: track.duration,
+      })),
       listeners: this.listeners.size,
     };
+  }
+
+  skip() {
+    if (!this.current && this.queue.length === 0) return false;
+    this.#advance();
+    return true;
   }
 
   destroy() {

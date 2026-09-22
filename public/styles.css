@@ -68,6 +68,12 @@ h1 {
     radial-gradient(circle at 50% 50%, #f3d48a 0%, #d7a24a 70%, #8a5a20 100%);
 }
 
+.now-label,
+h2,
+.hint {
+  font-family: Manrope, "Segoe UI", sans-serif;
+}
+
 .now-label {
   margin: 36px 0 0;
   letter-spacing: 0.2em;
@@ -78,10 +84,9 @@ h1 {
 
 h2 {
   margin: 8px 0 0;
-  font-family: Unbounded, Manrope, sans-serif;
   font-size: 22px;
-  line-height: 1.25;
-  font-weight: 600;
+  line-height: 1.35;
+  font-weight: 700;
 }
 
 .hint {

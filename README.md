@@ -1,6 +1,9 @@
 # radio
 
-Папка `tracks` — кидайте туда треки.
-Сервер на этой машинке: `npm start` → http://10.91.0.238:9191/
+Кидайте треки в папку `tracks`. Эфир идёт с этого компьютера.
 
-На GitHub Pages кнопка Play: https://checkmategs.github.io/radio/
+```bash
+npm start
+```
+
+Слушать: https://checkmategs.github.io/radio/

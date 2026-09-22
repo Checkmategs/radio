@@ -161,10 +161,20 @@ async function uploadFiles(files) {
   const body = new FormData();
   for (const file of files) body.append("files", file);
   statusEl.textContent = `Ставлю в эфир: ${files.length} файл(ов)…`;
-  const res = await fetch(api("api/upload"), { method: "POST", body });
+  let res;
+  try {
+    res = await fetch(api("api/upload"), { method: "POST", body });
+  } catch {
+    statusEl.textContent = "Нет связи с эфиром. Откройте http://10.91.0.55/radio/";
+    return;
+  }
   const payload = await res.json().catch(() => ({}));
   if (!res.ok) {
-    statusEl.textContent = payload.error || "Не удалось загрузить";
+    statusEl.textContent =
+      payload.error ||
+      (res.status === 405
+        ? "Эта страница не принимает файлы. Откройте http://10.91.0.55/radio/"
+        : "Не удалось загрузить");
     return;
   }
   const names = (payload.imported || []).map((item) => item.name).join(", ");

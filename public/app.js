@@ -41,8 +41,7 @@ playBtn.addEventListener("click", async () => {
     if (listening) stop();
     else await start();
   } catch {
-    hintEl.textContent = "Откройте эфир на этой машине: http://10.91.0.238:9191/";
-    window.location.href = "http://10.91.0.238:9191/";
+    hintEl.textContent = "Не удалось включить поток с этой машинки.";
   }
 });
 

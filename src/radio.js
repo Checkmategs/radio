@@ -196,7 +196,6 @@ export class Radio {
 
     return {
       station: "91RADIO",
-      frequency: "10.91",
       status: this.current ? "playing" : this.mode === "silence" ? "silence" : "idle",
       now,
       library: this.library.map((track) => ({

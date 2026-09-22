@@ -3,3 +3,6 @@ data/
 .npm-cache/
 .DS_Store
 *.log
+tracks/*
+!tracks/.gitkeep
+!tracks/README.txt

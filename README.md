@@ -1,12 +1,6 @@
 # radio
 
-Локальное радио на подсеть 10.91: общая очередь и один живой поток.
+Папка `tracks` — кидайте туда треки.
+Сервер на этой машинке: `npm start` → http://10.91.0.238:9191/
 
-Эфир: [http://10.91.0.55/radio/](http://10.91.0.55/radio/)
-
-```bash
-npm install
-npm start
-```
-
-Страница и поток: `http://127.0.0.1:9191/`
+На GitHub Pages кнопка Play: https://checkmategs.github.io/radio/

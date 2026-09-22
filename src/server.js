@@ -1,36 +1,21 @@
 import express from "express";
-import multer from "multer";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { randomUUID } from "node:crypto";
-import { decodeOriginalName, Radio } from "./radio.js";
+import { Radio } from "./radio.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const DATA_DIR = path.join(ROOT, "data");
+const TRACKS_DIR = path.join(ROOT, "tracks");
 const PORT = Number(process.env.PORT || 9191);
 const HOST = process.env.HOST || "0.0.0.0";
 
-const radio = new Radio({ dataDir: DATA_DIR });
+const radio = new Radio({ tracksDir: TRACKS_DIR });
 const app = express();
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, radio.libraryDir),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname || "").slice(0, 8) || ".bin";
-    cb(null, `${randomUUID()}${ext.toLowerCase()}`);
-  },
-});
-
-const upload = multer({
-  storage,
-  limits: { fileSize: 200 * 1024 * 1024, files: 20 },
-});
 
 app.disable("x-powered-by");
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") {
     res.sendStatus(204);
@@ -38,7 +23,6 @@ app.use((req, res, next) => {
   }
   next();
 });
-app.use(express.json());
 app.use(express.static(path.join(ROOT, "public")));
 
 app.get("/api/state", (_req, res) => {
@@ -72,55 +56,10 @@ app.get("/stream", (req, res) => {
   req.on("close", () => radio.removeListener(res));
 });
 
-app.post("/api/upload", upload.array("files", 20), async (req, res) => {
-  try {
-    const files = req.files || [];
-    if (files.length === 0) {
-      res.status(400).json({ error: "Файлы не пришли" });
-      return;
-    }
-    const imported = [];
-    for (const file of files) {
-      imported.push(
-        await radio.importFile({
-          originalName: decodeOriginalName(file.originalname),
-          storedName: file.filename,
-        }),
-      );
-    }
-    res.json({ imported: imported.map((track) => ({ id: track.id, name: track.name })) });
-  } catch (error) {
-    res.status(400).json({ error: error.message || "Не удалось поставить в эфир" });
-  }
-});
-
-app.post("/api/queue", (req, res) => {
-  const id = String(req.body?.id || "");
-  if (!radio.enqueue(id)) {
-    res.status(404).json({ error: "Трека нет в библиотеке" });
-    return;
-  }
-  res.json({ ok: true });
-});
-
-app.delete("/api/queue/:id", (req, res) => {
-  if (!radio.removeFromQueue(req.params.id)) {
-    res.status(404).json({ error: "Этого трека нет в очереди" });
-    return;
-  }
-  res.json({ ok: true });
-});
-
-app.post("/api/skip", (_req, res) => {
-  radio.skip();
-  res.json({ ok: true });
-});
-
 const server = app.listen(PORT, HOST, () => {
-  const urls = lanUrls(PORT);
   console.log(`91RADIO в эфире`);
-  for (const url of urls) console.log(`  ${url}`);
-  console.log(`  поток: /stream`);
+  for (const url of lanUrls(PORT)) console.log(`  ${url}`);
+  console.log(`  треки: ${TRACKS_DIR}`);
 });
 
 server.timeout = 0;

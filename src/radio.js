@@ -1,8 +1,8 @@
 import { spawn } from "node:child_process";
-import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
+const AUDIO_EXT = /\.(mp3|wav|flac|ogg|oga|m4a|aac|opus|webm)$/i;
 const STREAM_HEAD = ["-hide_banner", "-loglevel", "error", "-re"];
 const AUDIO_OUT = [
   "-vn",
@@ -18,18 +18,6 @@ const AUDIO_OUT = [
   "2",
   "pipe:1",
 ];
-
-export function decodeOriginalName(name) {
-  if (!name) return "без названия";
-  if (/[\u0400-\u04FF]/.test(name)) return name;
-  try {
-    const repaired = Buffer.from(name, "latin1").toString("utf8");
-    if (/[\u0400-\u04FF]/.test(repaired)) return repaired;
-    return name;
-  } catch {
-    return name;
-  }
-}
 
 function runProcess(bin, args) {
   return new Promise((resolve) => {
@@ -77,11 +65,14 @@ export async function probeDuration(filePath) {
   return parseFfmpegDuration(fallback?.err || "");
 }
 
+export function cleanName(name) {
+  const base = path.basename(name || "без названия");
+  return base.replace(/\.[^.]+$/, "") || base;
+}
+
 export class Radio {
-  constructor({ dataDir }) {
-    this.dataDir = dataDir;
-    this.libraryDir = path.join(dataDir, "library");
-    this.statePath = path.join(dataDir, "state.json");
+  constructor({ tracksDir }) {
+    this.tracksDir = tracksDir;
     this.library = [];
     this.queue = [];
     this.current = null;
@@ -91,12 +82,19 @@ export class Radio {
     this.generation = 0;
     this.listeners = new Set();
     this.subscribers = new Set();
+    this.syncing = false;
 
-    fs.mkdirSync(this.libraryDir, { recursive: true });
-    this.#load();
+    fs.mkdirSync(this.tracksDir, { recursive: true });
     this.tick = setInterval(() => {
       if (this.current) this.#notify();
     }, 1000);
+    this.watcher = fs.watch(this.tracksDir, () => {
+      clearTimeout(this.watchTimer);
+      this.watchTimer = setTimeout(() => {
+        this.syncFolder().catch(() => {});
+      }, 400);
+    });
+    this.ready = this.syncFolder();
   }
 
   subscribe(fn) {
@@ -120,62 +118,65 @@ export class Radio {
     }
   }
 
-  async importFile({ originalName, storedName }) {
-    const filePath = path.join(this.libraryDir, storedName);
-    const duration = await probeDuration(filePath);
-    if (!duration) {
-      try {
-        fs.unlinkSync(filePath);
-      } catch {
-        // ignore cleanup failure
-      }
-      throw new Error("Не удалось прочитать аудиофайл");
+  async syncFolder() {
+    if (this.syncing) {
+      this.syncAgain = true;
+      return;
     }
+    this.syncing = true;
+    try {
+      const names = fs
+        .readdirSync(this.tracksDir)
+        .filter((name) => AUDIO_EXT.test(name) && !name.startsWith("."));
+      names.sort((a, b) => a.localeCompare(b, "ru", { numeric: true, sensitivity: "base" }));
 
-    const track = {
-      id: randomUUID(),
-      name: cleanName(originalName),
-      filename: storedName,
-      duration,
-      addedAt: Date.now(),
-    };
-    this.library.unshift(track);
-    this.queue.push(track.id);
-    this.#save();
-    this.#ensurePlaying();
-    this.#notify();
-    return track;
-  }
+      const nextLibrary = [];
+      for (const filename of names) {
+        const filePath = path.join(this.tracksDir, filename);
+        let stat;
+        try {
+          stat = fs.statSync(filePath);
+        } catch {
+          continue;
+        }
+        const prev = this.library.find((item) => item.filename === filename);
+        if (prev && prev.mtime === stat.mtimeMs) {
+          nextLibrary.push(prev);
+          continue;
+        }
+        const duration = await probeDuration(filePath);
+        if (!duration) continue;
+        nextLibrary.push({
+          id: filename,
+          name: cleanName(filename),
+          filename,
+          duration,
+          mtime: stat.mtimeMs,
+          addedAt: Date.now(),
+        });
+      }
 
-  enqueue(id) {
-    const track = this.library.find((item) => item.id === id);
-    if (!track) return false;
-    this.queue.push(id);
-    this.#save();
-    this.#ensurePlaying();
-    this.#notify();
-    return true;
-  }
-
-  removeFromQueue(id) {
-    const index = this.queue.indexOf(id);
-    if (index === -1) return false;
-    this.queue.splice(index, 1);
-    this.#save();
-    this.#notify();
-    return true;
-  }
-
-  skip() {
-    if (!this.current && this.queue.length === 0) return false;
-    this.#advance();
-    return true;
+      this.library = nextLibrary;
+      const ids = new Set(nextLibrary.map((item) => item.id));
+      this.queue = this.queue.filter((id) => ids.has(id));
+      if (this.current && !ids.has(this.current.id)) this.#advance();
+      else this.#ensurePlaying();
+      this.#notify();
+    } finally {
+      this.syncing = false;
+      if (this.syncAgain) {
+        this.syncAgain = false;
+        await this.syncFolder();
+      }
+    }
   }
 
   getState() {
     const now = this.current
       ? {
-          ...publicTrack(this.current),
+          id: this.current.id,
+          name: this.current.name,
+          duration: this.current.duration,
           startedAt: this.startedAt,
           position: this.#position(),
         }
@@ -186,19 +187,18 @@ export class Radio {
       frequency: "10.91",
       status: this.current ? "playing" : this.mode === "silence" ? "silence" : "idle",
       now,
-      queue: this.queue
-        .map((id) => {
-          const track = this.library.find((item) => item.id === id);
-          return track ? publicTrack(track) : null;
-        })
-        .filter(Boolean),
-      library: this.library.map(publicTrack),
       listeners: this.listeners.size,
     };
   }
 
   destroy() {
     clearInterval(this.tick);
+    clearTimeout(this.watchTimer);
+    try {
+      this.watcher?.close();
+    } catch {
+      // ignore
+    }
     this.#stopProcess();
     for (const res of this.listeners) {
       try {
@@ -222,9 +222,13 @@ export class Radio {
     this.#playNext();
   }
 
+  #refill() {
+    for (const track of this.library) this.queue.push(track.id);
+  }
+
   #playNext() {
+    if (this.queue.length === 0) this.#refill();
     const nextId = this.queue.shift();
-    this.#save();
     if (!nextId) {
       this.current = null;
       this.startedAt = null;
@@ -243,10 +247,9 @@ export class Radio {
       return;
     }
 
-    const filePath = path.join(this.libraryDir, track.filename);
+    const filePath = path.join(this.tracksDir, track.filename);
     if (!fs.existsSync(filePath)) {
       this.library = this.library.filter((item) => item.id !== track.id);
-      this.#save();
       this.#playNext();
       return;
     }
@@ -333,40 +336,4 @@ export class Radio {
       }
     }
   }
-
-  #load() {
-    try {
-      const raw = JSON.parse(fs.readFileSync(this.statePath, "utf8"));
-      this.library = Array.isArray(raw.library) ? raw.library : [];
-      this.queue = Array.isArray(raw.queue) ? raw.queue : [];
-    } catch {
-      this.library = [];
-      this.queue = [];
-    }
-  }
-
-  #save() {
-    const payload = JSON.stringify(
-      { library: this.library, queue: this.queue },
-      null,
-      2,
-    );
-    const tmp = `${this.statePath}.tmp`;
-    fs.writeFileSync(tmp, payload);
-    fs.renameSync(tmp, this.statePath);
-  }
-}
-
-function publicTrack(track) {
-  return {
-    id: track.id,
-    name: track.name,
-    duration: track.duration,
-    addedAt: track.addedAt,
-  };
-}
-
-function cleanName(name) {
-  const base = path.basename(name || "без названия");
-  return base.replace(/\.[^.]+$/, "") || base;
 }

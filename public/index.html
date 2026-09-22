@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>91RADIO — эфир подсети</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Chivo+Mono:wght@500;700&family=Fraunces:opsz,wght@9..144,560;9..144,700&family=Karla:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="room">
+      <aside class="shelf">
+        <p class="shelf-mark">LAN</p>
+        <p class="shelf-freq">10.91</p>
+        <p class="shelf-note">Один эфир на всех. Кто подключился — слышит тот же такт.</p>
+      </aside>
+
+      <main class="set">
+        <header class="faceplate">
+          <div>
+            <p class="callsign">подсеть 10.91</p>
+            <h1>91RADIO</h1>
+          </div>
+          <div class="lamp" id="lamp" data-lit="false">
+            <span></span>
+            <strong id="lamp-text">ТИШИНА</strong>
+          </div>
+        </header>
+
+        <section class="dial" aria-label="Шкала настройки">
+          <div class="scale" aria-hidden="true">
+            <i>10.88</i>
+            <i>10.89</i>
+            <i class="here">10.91</i>
+            <i>10.93</i>
+            <i>10.94</i>
+          </div>
+          <div class="needle" id="needle"></div>
+          <p class="freq">10.91</p>
+          <div class="now">
+            <p class="now-label">Сейчас в эфире</p>
+            <h2 id="now-title">Тишина</h2>
+            <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="progress">
+              <i id="progress-bar"></i>
+            </div>
+            <p class="clock" id="now-clock">0:00 / 0:00</p>
+          </div>
+        </section>
+
+        <section class="deck">
+          <button type="button" class="listen" id="listen">Слушать эфир</button>
+          <label class="vol">
+            <span>Громкость</span>
+            <input id="volume" type="range" min="0" max="1" step="0.01" value="0.9" />
+          </label>
+          <p class="crowd" id="crowd">никто не слушает</p>
+        </section>
+
+        <div class="vu" aria-hidden="true">
+          <span>VU</span>
+          <div class="vu-track"><i id="vu-bar"></i></div>
+        </div>
+
+        <div class="desk">
+          <section class="panel">
+            <header>
+              <h3>Очередь</h3>
+              <button type="button" class="ghost" id="skip">Пропустить</button>
+            </header>
+            <ol id="queue"></ol>
+            <p class="empty" id="queue-empty">Очередь пуста — перетащите файлы справа.</p>
+          </section>
+
+          <section class="panel drop" id="drop">
+            <header>
+              <h3>В эфир</h3>
+              <label class="ghost file-btn">
+                Выбрать файлы
+                <input id="file" type="file" accept="audio/*,.mp3,.wav,.flac,.ogg,.m4a,.aac,.opus,.webm" multiple hidden />
+              </label>
+            </header>
+            <p class="drop-hint">Перетащите mp3, wav, flac, ogg, m4a</p>
+            <p class="status" id="status"></p>
+          </section>
+        </div>
+
+        <section class="panel library-panel">
+          <header>
+            <h3>Библиотека</h3>
+          </header>
+          <ul id="library"></ul>
+          <p class="empty" id="library-empty">Пока пусто.</p>
+        </section>
+      </main>
+    </div>
+
+    <audio id="player" preload="none"></audio>
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+[Unit]
+Description=91RADIO LAN station
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/apps/91radio
+Environment=HOST=127.0.0.1
+Environment=PORT=9191
+Environment=NVM_DIR=%h/.nvm
+ExecStart=/bin/bash -lc "source %h/.nvm/nvm.sh && exec node src/server.js"
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

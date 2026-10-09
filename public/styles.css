@@ -1,0 +1,377 @@
+:root {
+  --cabinet: #32161c;
+  --plinth: #4a2428;
+  --brass: #b8884a;
+  --dial: #e4d5b8;
+  --dial-ink: #2a1c14;
+  --filament: #e0923a;
+  --lamp: #c85a4a;
+  --soot: #140c0e;
+  --felt: #1c1012;
+  --steel: #7a7368;
+  --paper: #f3ead6;
+  --ok: #c8a15a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: Karla, sans-serif;
+  color: var(--paper);
+  background:
+    radial-gradient(1200px 600px at 15% -10%, #5a2a28 0%, transparent 55%),
+    linear-gradient(180deg, #1a0e10 0%, var(--felt) 40%, #0e0809 100%);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.room {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 28px;
+}
+
+.shelf {
+  padding-top: 28px;
+}
+
+.shelf-mark,
+.callsign,
+.now-label {
+  margin: 0;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 11px;
+  color: var(--brass);
+}
+
+.shelf-freq {
+  margin: 8px 0 16px;
+  font-family: "Chivo Mono", monospace;
+  font-size: 42px;
+  font-weight: 700;
+  letter-spacing: -0.06em;
+}
+
+.shelf-note {
+  margin: 0;
+  color: #cbb8a6;
+  line-height: 1.45;
+  font-size: 14px;
+}
+
+.set {
+  background:
+    linear-gradient(180deg, #4b272c 0%, var(--cabinet) 28%, #2a1418 100%);
+  border: 1px solid #6a3a36;
+  border-bottom-color: #1a0c0e;
+  border-radius: 28px;
+  padding: 28px;
+  box-shadow:
+    0 24px 50px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 220, 180, 0.18);
+}
+
+.faceplate {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+h1 {
+  margin: 4px 0 0;
+  font-family: Fraunces, serif;
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.lamp {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #1a0e10;
+  border: 1px solid #5a3030;
+}
+
+.lamp span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #4a2a28;
+  box-shadow: none;
+}
+
+.lamp[data-lit="true"] span {
+  background: var(--lamp);
+  box-shadow: 0 0 14px var(--lamp);
+}
+
+.lamp strong {
+  font-size: 12px;
+  letter-spacing: 0.14em;
+}
+
+.dial {
+  position: relative;
+  margin: 22px 0 18px;
+  padding: 22px 22px 18px;
+  background:
+    radial-gradient(circle at 50% 120%, #fff6e4 0%, var(--dial) 58%, #c9b48d 100%);
+  color: var(--dial-ink);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 3px #2a1a16, 0 0 0 1px #8a5a40;
+}
+
+.scale {
+  display: flex;
+  justify-content: space-between;
+  font-family: "Chivo Mono", monospace;
+  font-size: 11px;
+  color: #6a5340;
+  border-bottom: 2px solid #2a1c14;
+  padding-bottom: 8px;
+}
+
+.scale .here {
+  color: var(--dial-ink);
+  font-weight: 700;
+}
+
+.needle {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  width: 2px;
+  height: 34px;
+  background: var(--filament);
+  transform: translateX(-50%) rotate(0deg);
+  transform-origin: bottom center;
+  box-shadow: 0 0 10px var(--filament);
+  transition: transform 80ms linear;
+}
+
+.freq {
+  margin: 18px 0 8px;
+  font-family: "Chivo Mono", monospace;
+  font-size: clamp(56px, 8vw, 84px);
+  font-weight: 700;
+  letter-spacing: -0.07em;
+  line-height: 0.9;
+}
+
+.now h2 {
+  margin: 4px 0 12px;
+  font-family: Fraunces, serif;
+  font-size: 28px;
+  line-height: 1.15;
+}
+
+.progress {
+  height: 8px;
+  background: #c4b191;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.progress i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: #2a1c14;
+}
+
+.clock {
+  margin: 8px 0 0;
+  font-family: "Chivo Mono", monospace;
+  font-size: 13px;
+}
+
+.deck {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 16px;
+  align-items: center;
+}
+
+.listen {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 14px 22px;
+  background: var(--filament);
+  color: var(--soot);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.listen[data-on="true"] {
+  background: #1a0e10;
+  color: var(--paper);
+  box-shadow: inset 0 0 0 1px #8a5a40;
+}
+
+.vol {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #e6cfb4;
+}
+
+.vol input {
+  width: 140px;
+}
+
+.crowd {
+  margin: 0;
+  color: #e6cfb4;
+}
+
+.vu {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0 22px;
+  color: #e6cfb4;
+  font-family: "Chivo Mono", monospace;
+  font-size: 11px;
+}
+
+.vu-track {
+  flex: 1;
+  height: 7px;
+  background: #1a0e10;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.vu-track i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #7a4a28, var(--filament) 70%, var(--lamp));
+  transition: width 80ms linear;
+}
+
+.desk {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.panel {
+  background: rgba(12, 6, 7, 0.35);
+  border: 1px solid #5a3230;
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.panel header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel h3 {
+  margin: 0;
+  font-family: Fraunces, serif;
+  font-size: 20px;
+}
+
+.ghost,
+.file-btn {
+  appearance: none;
+  border: 1px solid #8a5a48;
+  background: transparent;
+  color: var(--paper);
+  border-radius: 999px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+ol,
+ul {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid #4a2c2a;
+}
+
+.row:first-child {
+  border-top: 0;
+}
+
+.row button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #e6cfb4;
+  cursor: pointer;
+}
+
+.empty,
+.drop-hint,
+.status {
+  color: #d8c2ae;
+  font-size: 14px;
+}
+
+.drop {
+  min-height: 180px;
+  outline: 1px dashed transparent;
+}
+
+.drop.over {
+  outline-color: var(--filament);
+  background: rgba(224, 146, 58, 0.08);
+}
+
+.library-panel {
+  margin-top: 14px;
+}
+
+.hidden {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .room,
+  .desk,
+  .deck {
+    grid-template-columns: 1fr;
+  }
+
+  .shelf {
+    padding-top: 0;
+  }
+}

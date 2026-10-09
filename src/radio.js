@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { loadLyrics, sidecarMtime } from "./lyrics.js";
 
 const AUDIO_EXT = /\.(mp3|wav|flac|ogg|oga|m4a|aac|opus|webm)$/i;
 const STREAM_HEAD = ["-hide_banner", "-loglevel", "error", "-re"];
@@ -152,7 +153,8 @@ export class Radio {
           continue;
         }
         const prev = this.library.find((item) => item.filename === filename);
-        if (prev && prev.mtime === stat.mtimeMs) {
+        const lyricsStamp = stat.mtimeMs + sidecarMtime(filePath);
+        if (prev && prev.mtime === lyricsStamp) {
           nextLibrary.push(prev);
           continue;
         }
@@ -163,7 +165,8 @@ export class Radio {
           name: cleanName(filename),
           filename,
           duration,
-          mtime: stat.mtimeMs,
+          lyrics: await loadLyrics(filePath, duration),
+          mtime: lyricsStamp,
           addedAt: Date.now(),
         });
       }
@@ -191,6 +194,7 @@ export class Radio {
           duration: this.current.duration,
           startedAt: this.startedAt,
           position: this.#position(),
+          lyrics: this.current.lyrics || [],
         }
       : null;
 
@@ -277,7 +281,7 @@ export class Radio {
     }
 
     this.current = track;
-    this.startedAt = Date.now();
+    this.startedAt = null;
     this.mode = "playing";
     this.#startFfmpeg(["-i", filePath, ...AUDIO_OUT]);
     this.#notify();
@@ -300,7 +304,13 @@ export class Radio {
     const generation = ++this.generation;
     const proc = spawn("ffmpeg", [...STREAM_HEAD, ...args]);
     this.ffmpeg = proc;
-    proc.stdout.on("data", (chunk) => this.#broadcast(chunk));
+    proc.stdout.on("data", (chunk) => {
+      if (this.mode === "playing" && this.ffmpeg === proc && !this.startedAt) {
+        this.startedAt = Date.now();
+        this.#notify();
+      }
+      this.#broadcast(chunk);
+    });
     proc.stderr.on("data", () => {});
     proc.on("error", () => {
       if (this.generation === generation) this.#onProcessEnded(proc);

@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <canvas id="viz" aria-hidden="true"></canvas>
     <main class="stage">
       <h1>91RADIO</h1>
       <button type="button" class="play" id="play" aria-label="Play">
@@ -22,7 +23,13 @@
       <h2 id="title">Тишина</h2>
       <p class="hint" id="hint"></p>
     </main>
+    <section class="karaoke" id="karaoke" aria-live="polite">
+      <p class="karaoke-line prev" id="karaoke-prev"></p>
+      <p class="karaoke-line current" id="karaoke-current"></p>
+      <p class="karaoke-line next" id="karaoke-next"></p>
+    </section>
     <audio id="player" preload="none"></audio>
+    <script src="viz.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
